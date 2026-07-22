@@ -1,0 +1,4 @@
+[submodule "grok2api"]
+	path = grok2api
+	url = https://github.com/chenyme/grok2api.git
+	branch = main

@@ -1,0 +1,50 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout launcher repo
+        uses: actions/checkout@v4
+
+      - name: Checkout grok2api source
+        uses: actions/checkout@v4
+        with:
+          repository: chenyme/grok2api
+          path: grok2api-src
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Build grok2api.exe
+        shell: pwsh
+        run: |
+          Set-Location grok2api-src/backend
+          go build -o ../../internal/embed/grok2api.exe ./cmd/grok2api
+          if ($LASTEXITCODE -ne 0) { throw "grok2api build failed" }
+          $info = Get-Item ../../internal/embed/grok2api.exe
+          Write-Host "grok2api.exe built: $($info.Length) bytes"
+
+      - name: Build launcher
+        shell: pwsh
+        run: |
+          go build -o grok2-launcher.exe ./cmd/launcher
+          if ($LASTEXITCODE -ne 0) { throw "launcher build failed" }
+          $info = Get-Item grok2-launcher.exe
+          Write-Host "grok2-launcher.exe built: $($info.Length) bytes"
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: grok2-launcher.exe
+          generate_release_notes: true

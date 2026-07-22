@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grok2 Launcher</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+.container { max-width: 800px; margin: 0 auto; padding: 24px; }
+h1 { font-size: 22px; font-weight: 600; margin-bottom: 24px; color: #f0f6fc; display: flex; align-items: center; gap: 8px; }
+h1 small { font-size: 13px; color: #8b949e; font-weight: 400; }
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #f0f6fc; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 4px; }
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"] { width: 100%; padding: 8px 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+.form-group input:focus { outline: none; border-color: #58a6ff; }
+.form-row { display: flex; gap: 12px; align-items: end; }
+.form-row .form-group { flex: 1; }
+.checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.checkbox-group label { font-size: 13px; color: #c9d1d9; cursor: pointer; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: .2s; }
+.btn-primary { background: #238636; color: #fff; }
+.btn-primary:hover { background: #2ea043; }
+.btn-primary:disabled { background: #23863666; cursor: not-allowed; }
+.btn-danger { background: #da3633; color: #fff; }
+.btn-danger:hover { background: #f85149; }
+.btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+.btn-secondary:hover { background: #30363d; }
+.btn-group { display: flex; gap: 8px; margin-top: 16px; }
+.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.status-item { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 14px; }
+.status-item .name { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+.status-item .value { font-size: 18px; font-weight: 600; }
+.status-item .url { font-size: 12px; color: #58a6ff; margin-top: 4px; }
+.status-stopped { color: #8b949e; }
+.status-running { color: #3fb950; }
+.status-starting { color: #d29922; }
+.status-error { color: #f85149; }
+.log-box { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; height: 350px; overflow-y: auto; font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; line-height: 1.6; }
+.log-box .log-info { color: #8b949e; }
+.log-box .log-ok { color: #3fb950; }
+.log-box .log-warn { color: #d29922; }
+.log-box .log-error { color: #f85149; }
+.log-box .log-time { color: #484f58; }
+.url-links { margin-top: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
+.url-links a { color: #58a6ff; text-decoration: none; font-size: 13px; }
+.url-links a:hover { text-decoration: underline; }
+#config-page, #dashboard-page { display: none; }
+.check-path { margin-top: 4px; font-size: 12px; }
+.check-path.ok { color: #3fb950; }
+.check-path.err { color: #f85149; }
+#detect-python { font-size: 12px; color: #58a6ff; cursor: pointer; margin-left: 4px; }
+@keyframes pulse { 0% { opacity: .4; } 50% { opacity: 1; } 100% { opacity: .4; } }
+.pulse { animation: pulse 1.5s infinite; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Grok2 Launcher <small id="version-info"></small></h1>
+
+<div id="config-page">
+<div class="card">
+<h2>首次配置</h2>
+<p style="font-size:13px;color:#8b949e;margin-bottom:16px">请填写以下配置项，保存后即可启动服务</p>
+<div class="form-group">
+<label>Python 可执行文件路径</label>
+<div style="display:flex;gap:8px">
+<input type="text" id="python-path" placeholder="例如: D:\python-3.12-embed-amd64\python.exe">
+<span id="detect-python" onclick="detectPython()">自动检测</span>
+</div>
+<div id="python-check" class="check-path"></div>
+</div>
+<div class="form-group">
+<label>YesCaptcha API Key</label>
+<input type="text" id="yescaptcha-key" placeholder="填写你的 YesCaptcha API Key（注册用）">
+</div>
+<div class="form-group">
+<label>Tempmail.lol API Key</label>
+<input type="text" id="tempmail-key" placeholder="填写你的 Tempmail.lol API Key（注册用）">
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>代理端口（可选）</label>
+<input type="number" id="proxy-port" value="7890" placeholder="7890">
+</div>
+<div class="checkbox-group" style="padding-bottom:8px">
+<input type="checkbox" id="proxy-enabled" checked>
+<label for="proxy-enabled">启用代理（国内访问 x.ai 通常需要）</label>
+</div>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="saveAndStart()">💾 保存并启动</button>
+</div>
+</div>
+</div>
+
+<div id="dashboard-page">
+<div class="status-grid">
+<div class="status-item">
+<div class="name">grok2api</div>
+<div class="value" id="status-grok2api">—</div>
+<div class="url" id="url-grok2api"></div>
+</div>
+<div class="status-item">
+<div class="name">注册控制台</div>
+<div class="value" id="status-webui">—</div>
+<div class="url" id="url-webui"></div>
+</div>
+</div>
+<div class="url-links" id="url-links"></div>
+<div class="btn-group">
+<button class="btn btn-danger" onclick="stopAll()">⏹ 停止全部</button>
+<button class="btn btn-secondary" onclick="clearLogs()">清空日志</button>
+</div>
+<div class="card" style="margin-top:16px">
+<h2>运行日志</h2>
+<div class="log-box" id="log-box"></div>
+</div>
+</div>
+</div>
+
+<script>
+let evtSource = null;
+let autoScroll = true;
+
+function showPage(id) {
+document.getElementById('config-page').style.display = id === 'config' ? 'block' : 'none';
+document.getElementById('dashboard-page').style.display = id === 'dashboard' ? 'block' : 'none';
+}
+
+function detectPython() {
+const input = document.getElementById('python-path');
+const check = document.getElementById('python-check');
+check.className = 'check-path';
+check.textContent = '正在检测...';
+fetch('/api/config').then(r=>r.json()).then(cfg => {
+if (cfg.python_path) { input.value = cfg.python_path; }
+// Try common paths
+const candidates = [
+'python3.exe', 'python.exe',
+'C:\\Python312\\python.exe',
+'C:\\Python313\\python.exe',
+'C:\\Program Files\\Python312\\python.exe',
+];
+// Check each via backend - for now just set cursor
+input.focus();
+check.className = 'check-path ok';
+check.textContent = '请手动输入 Python 路径（点击保存后将自动验证）';
+}).catch(() => {});
+}
+
+function loadConfig() {
+fetch('/api/config').then(r=>r.json()).then(cfg => {
+if (cfg.first_run) {
+showPage('config');
+} else {
+document.getElementById('python-path').value = cfg.python_path || '';
+document.getElementById('yescaptcha-key').value = cfg.yescaptcha_key || '';
+document.getElementById('tempmail-key').value = cfg.tempmail_key || '';
+document.getElementById('proxy-port').value = cfg.proxy_port || 7890;
+document.getElementById('proxy-enabled').checked = cfg.proxy_enabled !== false;
+showPage('dashboard');
+startLogs();
+}
+}).catch(() => showPage('config'));
+}
+
+function saveAndStart() {
+const cfg = {
+python_path: document.getElementById('python-path').value.trim(),
+yescaptcha_key: document.getElementById('yescaptcha-key').value.trim(),
+tempmail_key: document.getElementById('tempmail-key').value.trim(),
+proxy_port: parseInt(document.getElementById('proxy-port').value) || 7890,
+proxy_enabled: document.getElementById('proxy-enabled').checked,
+};
+
+if (!cfg.python_path) { alert('请填写 Python 路径'); return; }
+if (!cfg.yescaptcha_key) { alert('请填写 YesCaptcha API Key'); return; }
+if (!cfg.tempmail_key) { alert('请填写 Tempmail API Key'); return; }
+
+document.querySelector('#config-page .btn-primary').disabled = true;
+document.querySelector('#config-page .btn-primary').textContent = '⏳ 保存中...';
+
+fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(cfg) })
+.then(r=>r.json()).then(() => {
+showPage('dashboard');
+startLogs();
+startAll();
+}).catch(e => { alert('保存失败: '+e); });
+}
+
+function startAll() {
+addLog('info', '正在启动所有服务...');
+fetch('/api/start', { method: 'POST' }).then(r=>r.json()).then(data => {
+addLog('info', '启动指令已发送');
+}).catch(e => addLog('error', '启动失败: '+e));
+}
+
+function stopAll() {
+if (!confirm('确定停止所有服务？')) return;
+fetch('/api/stop', { method: 'POST' }).then(r=>r.json()).then(() => {
+addLog('ok', '已停止所有服务');
+document.getElementById('status-grok2api').textContent = '已停止';
+document.getElementById('status-grok2api').className = 'value status-stopped';
+document.getElementById('status-webui').textContent = '已停止';
+document.getElementById('status-webui').className = 'value status-stopped';
+}).catch(e => addLog('error', '停止失败: '+e));
+}
+
+function startLogs() {
+if (evtSource) { evtSource.close(); }
+evtSource = new EventSource('/api/logs');
+evtSource.onmessage = function(e) {
+try {
+const entry = JSON.parse(e.data);
+addLog(entry.level, entry.message);
+} catch(ex) {}
+};
+evtSource.onerror = function() {
+// Connection lost - will auto-reconnect
+};
+// Poll status
+setInterval(function() {
+fetch('/api/status').then(r=>r.json()).then(state => {
+updateStatus('grok2api', state.grok2api);
+updateStatus('webui', state.webui);
+});
+}, 2000);
+}
+
+function updateStatus(name, code) {
+const el = document.getElementById('status-'+name);
+const labels = {0:'已停止', 1:'启动中', 2:'运行中', 3:'失败'};
+const classes = {0:'status-stopped', 1:'status-starting pulse', 2:'status-running', 3:'status-error'};
+if (el) { el.textContent = labels[code] || '未知'; el.className = 'value '+(classes[code]||'status-stopped'); }
+if (code === 2 && name === 'grok2api') {
+document.getElementById('url-grok2api').textContent = 'http://127.0.0.1:8000';
+}
+if (code === 2 && name === 'webui') {
+document.getElementById('url-webui').textContent = 'http://127.0.0.1:8765';
+}
+}
+
+function addLog(level, msg) {
+const box = document.getElementById('log-box');
+if (!box) return;
+const time = new Date().toLocaleTimeString('zh-CN', {hour12:false});
+const line = document.createElement('div');
+const cls = level === 'ok' ? 'log-ok' : level === 'warn' ? 'log-warn' : level === 'error' ? 'log-error' : 'log-info';
+line.innerHTML = '<span class="log-time">['+time+']</span> <span class="'+cls+'">'+escapeHtml(msg)+'</span>';
+box.appendChild(line);
+if (autoScroll) { box.scrollTop = box.scrollHeight; }
+}
+
+function clearLogs() {
+document.getElementById('log-box').innerHTML = '';
+}
+
+function escapeHtml(s) {
+const d = document.createElement('div');
+d.textContent = s;
+return d.innerHTML;
+}
+
+// Init
+loadConfig();
+</script>
+</body>
+</html>
