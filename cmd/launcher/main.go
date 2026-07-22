@@ -182,5 +182,4 @@ func openBrowser(url string) {
 		logger.Global.Write(logger.Warn, "自动打开浏览器失败: %v", err)
 	}
 	_ = proc
-	_ = strconv.Itoa
 }
